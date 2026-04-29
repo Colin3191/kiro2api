@@ -35,6 +35,7 @@ jobs:
             pkg.name = 'kiro-proxy';
             require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2));
           "
+          echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}" > .npmrc
           npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -71,6 +72,7 @@ jobs:
             pkg.name = 'kiro-proxy';
             require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2));
           "
+          echo "//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}" > .npmrc
           npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
