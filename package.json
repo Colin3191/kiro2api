@@ -14,6 +14,7 @@
     "q-client.js",
     "token-reader.js",
     "token-counter.js",
+    "usage-tracker.js",
     "logger.js"
   ],
   "repository": {

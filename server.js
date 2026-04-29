@@ -5,6 +5,7 @@ import { getAccessToken } from './token-reader.js';
 import { createClient, chat, chatStream, listAvailableModels } from './q-client.js';
 import { c, log, logSummary, reqId, tagError } from './logger.js';
 import { countMessages, countContent } from './token-counter.js';
+import { recordUsage, queryUsage, todaySummary } from './usage-tracker.js';
 
 const app = express();
 app.use(express.json({ limit: '10mb' }));
@@ -159,6 +160,7 @@ app.post('/v1/messages', async (req, res) => {
             blockIndex++;
           } else if (chunk.type === 'summary') {
             summary = chunk.stats;
+            if (typeof chunk.meteringUsage === 'number') recordUsage(chunk.meteringUsage, model);
           }
         }
 
@@ -192,6 +194,7 @@ app.post('/v1/messages', async (req, res) => {
     } else {
       // 非流式
       const result = await chat(client, opts);
+      if (typeof result.meteringUsage === 'number') recordUsage(result.meteringUsage, model);
       const inputTokens = countMessages(messages, system);
       const outputTokens = countContent(result.content);
       const s = result.stats || {};
@@ -260,6 +263,7 @@ app.post('/v1/chat/completions', async (req, res) => {
           })}\n\n`);
         } else if (chunk.type === 'summary') {
           summary = chunk.stats;
+          if (typeof chunk.meteringUsage === 'number') recordUsage(chunk.meteringUsage, model);
         }
       }
       res.write(`data: ${JSON.stringify({
@@ -275,6 +279,7 @@ app.post('/v1/chat/completions', async (req, res) => {
       logSummary(rid, Date.now() - start, s);
     } else {
       const result = await chat(client, opts);
+      if (typeof result.meteringUsage === 'number') recordUsage(result.meteringUsage, model);
       const text = result.content.filter(b => b.type === 'text').map(b => b.text).join('');
       const promptTokens = countMessages(messages, system);
       const completionTokens = countContent(text);
@@ -338,15 +343,28 @@ app.get('/health', async (_req, res) => {
   }
 });
 
+// ============================================================
+// GET /credits — Usage statistics
+// ============================================================
+app.get('/credits', (_req, res) => {
+  const period = _req.query.period || 'today';
+  res.json(queryUsage(period));
+});
+
 app.listen(PORT, async () => {
   console.log(`${c.cyan}Kiro Proxy${c.reset} running on ${c.green}http://localhost:${PORT}${c.reset}`);
   console.log(`  ${c.gray}Anthropic:${c.reset} http://localhost:${PORT}/v1/messages`);
   console.log(`  ${c.gray}OpenAI:   ${c.reset} http://localhost:${PORT}/v1/chat/completions`);
   console.log(`  ${c.gray}Models:   ${c.reset} http://localhost:${PORT}/v1/models`);
+  console.log(`  ${c.gray}Credits: ${c.reset} http://localhost:${PORT}/credits`);
   try {
     const t = await getAccessToken();
     console.log(`  ${c.gray}Provider: ${c.yellow}${t.provider || 'unknown'}${c.reset}, Expires: ${c.dim}${t.expiresAt || 'unknown'}${c.reset}`);
   } catch (err) {
     console.warn(`  ${c.yellow}Warning:${c.reset} ${err.message}`);
+  }
+  const today = todaySummary();
+  if (today.requests > 0) {
+    console.log(`  ${c.gray}Today:    ${c.yellow}${today.credits.toFixed(4)} credits${c.reset} (${today.requests} requests)`);
   }
 });

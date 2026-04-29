@@ -306,6 +306,7 @@ export async function* chatStream(client, { messages, system, tools, profileArn,
   const activeTools = new Map(); // toolUseId → { name, inputChunks }
   // 收集统计信息，流结束后汇总输出
   const stats = {};
+  let meteringUsage = 0;
 
   for await (const event of response.generateAssistantResponseResponse) {
     // 文本内容
@@ -331,6 +332,7 @@ export async function* chatStream(client, { messages, system, tools, profileArn,
     if (event.meteringEvent) {
       const m = event.meteringEvent;
       stats.metering = `${m.usage?.toFixed(4) ?? '?'} ${m.unitPlural || m.unit || 'units'}`;
+      if (typeof m.usage === 'number') meteringUsage = m.usage;
     }
 
     // 代码引用/许可证事件
@@ -407,7 +409,7 @@ export async function* chatStream(client, { messages, system, tools, profileArn,
   }
 
   // 汇总统计信息
-  yield { type: 'summary', stats };
+  yield { type: 'summary', stats, meteringUsage };
 }
 
 /**
@@ -419,6 +421,7 @@ export async function chat(client, { messages, system, tools, profileArn, modelI
   let thinkingText = '';
   let thinkingSignature;
   let stats;
+  let meteringUsage = 0;
 
   for await (const event of chatStream(client, { messages, system, tools, profileArn, modelId })) {
     if (event.type === 'thinking') {
@@ -443,6 +446,7 @@ export async function chat(client, { messages, system, tools, profileArn, modelI
       content.push({ type: 'tool_use', id: event.toolUseId, name: event.name, input: event.input });
     } else if (event.type === 'summary') {
       stats = event.stats;
+      meteringUsage = event.meteringUsage;
     }
   }
 
@@ -452,7 +456,7 @@ export async function chat(client, { messages, system, tools, profileArn, modelI
   }
 
   const hasToolUse = content.some(b => b.type === 'tool_use');
-  return { content, stopReason: hasToolUse ? 'tool_use' : 'end_turn', modelId: usedModelId, stats };
+  return { content, stopReason: hasToolUse ? 'tool_use' : 'end_turn', modelId: usedModelId, stats, meteringUsage };
 }
 
 // ============================================================
