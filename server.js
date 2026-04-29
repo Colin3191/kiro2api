@@ -363,8 +363,15 @@ app.listen(PORT, async () => {
   } catch (err) {
     console.warn(`  ${c.yellow}Warning:${c.reset} ${err.message}`);
   }
+});
+
+function shutdown() {
   const today = todaySummary();
   if (today.requests > 0) {
-    console.log(`  ${c.gray}Today:    ${c.yellow}${today.credits.toFixed(4)} credits${c.reset} (${today.requests} requests)`);
+    console.log(`\n${c.cyan}Today:${c.reset} ${c.yellow}${today.credits.toFixed(4)} credits${c.reset} (${today.requests} requests)`);
   }
-});
+  process.exit(0);
+}
+
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
