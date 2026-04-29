@@ -35,7 +35,6 @@ jobs:
             pkg.name = 'kiro-proxy';
             require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2));
           "
-          echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}" > .npmrc
           npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -62,17 +61,5 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Publish as kiro-proxy
-        run: |
-          node -e "
-            const pkg = JSON.parse(require('fs').readFileSync('package.json', 'utf8'));
-            pkg.name = 'kiro-proxy';
-            require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2));
-          "
-          echo "//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}" > .npmrc
-          npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
