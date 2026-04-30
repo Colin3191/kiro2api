@@ -77,13 +77,17 @@ Add to `~/.claude/settings.json`:
   "env": {
     "ANTHROPIC_AUTH_TOKEN": "any",
     "ANTHROPIC_BASE_URL": "http://localhost:3456",
-    "ANTHROPIC_MODEL": "claude-sonnet-4.6",
     "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-sonnet-4.6",
     "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-4.6",
     "ANTHROPIC_DEFAULT_HAIKU_MODEL": "claude-haiku-4.5"
-  }
+  },
+  "model": "sonnet"
 }
 ```
+
+`model` accepts `sonnet`, `opus`, or `haiku`. Append `[1m]` to enable the 1M context window (e.g. `"opus[1m]"`).
+
+> Note: Do not set the `ANTHROPIC_MODEL` environment variable — it overrides the `model` field and disables context window configuration.
 
 ## Related Projects
 

@@ -77,13 +77,17 @@ Claude Code 默认使用 Anthropic 官方 model ID，需要通过环境变量映
   "env": {
     "ANTHROPIC_AUTH_TOKEN": "any",
     "ANTHROPIC_BASE_URL": "http://localhost:3456",
-    "ANTHROPIC_MODEL": "claude-sonnet-4.6",
     "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-sonnet-4.6",
     "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-4.6",
     "ANTHROPIC_DEFAULT_HAIKU_MODEL": "claude-haiku-4.5"
-  }
+  },
+  "model": "sonnet"
 }
 ```
+
+`model` 可选值：`sonnet`、`opus`、`haiku`，添加 `[1m]` 后缀可启用 1M 上下文窗口（如 `"opus[1m]"`）。
+
+> 注意：不要设置 `ANTHROPIC_MODEL` 环境变量，它会覆盖 `model` 字段，导致上下文窗口等配置失效。
 
 ## 相关项目
 
