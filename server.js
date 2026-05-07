@@ -11,6 +11,17 @@ const app = express();
 app.use(express.json({ limit: '10mb' }));
 
 const PORT = process.env.PORT || 3456;
+const PROXY_API_KEY = process.env.PROXY_API_KEY;
+
+function authMiddleware(req, res, next) {
+  if (!PROXY_API_KEY) return next();
+  const auth = req.headers['authorization'];
+  const token = auth?.startsWith('Bearer ') ? auth.slice(7) : null;
+  if (token === PROXY_API_KEY) return next();
+  res.status(401).json({ type: 'error', error: { type: 'authentication_error', message: 'Invalid or missing API key' } });
+}
+
+app.use(authMiddleware);
 
 let cachedClient = null;
 let cachedToken = null;
@@ -357,6 +368,7 @@ app.listen(PORT, async () => {
   console.log(`  ${c.gray}OpenAI:   ${c.reset} http://localhost:${PORT}/v1/chat/completions`);
   console.log(`  ${c.gray}Models:   ${c.reset} http://localhost:${PORT}/v1/models`);
   console.log(`  ${c.gray}Credits: ${c.reset} http://localhost:${PORT}/credits`);
+  console.log(`  ${c.gray}Auth:     ${c.reset} ${PROXY_API_KEY ? `${c.green}enabled${c.reset} (PROXY_API_KEY)` : `${c.yellow}disabled${c.reset} (no PROXY_API_KEY set)`}`);
   try {
     const t = await getAccessToken();
     console.log(`  ${c.gray}Provider: ${c.yellow}${t.provider || 'unknown'}${c.reset}, Expires: ${c.dim}${t.expiresAt || 'unknown'}${c.reset}`);
