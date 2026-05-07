@@ -3,9 +3,13 @@ import express from 'express';
 import crypto from 'crypto';
 import { getAccessToken } from './token-reader.js';
 import { createClient, chat, chatStream, listAvailableModels } from './q-client.js';
-import { c, log, logSummary, reqId, tagError } from './logger.js';
+import { c, log, tagLog, logSummary, reqId, tagError } from './logger.js';
 import { countMessages, countContent } from './token-counter.js';
 import { recordUsage, queryUsage, todaySummary } from './usage-tracker.js';
+import { initGlobalProxy } from './proxy-config.js';
+
+const proxyUrl = initGlobalProxy();
+if (proxyUrl) tagLog('proxy', `Using proxy: ${proxyUrl}`);
 
 const app = express();
 app.use(express.json({ limit: '10mb' }));

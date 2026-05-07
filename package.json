@@ -15,7 +15,8 @@
     "token-reader.js",
     "token-counter.js",
     "usage-tracker.js",
-    "logger.js"
+    "logger.js",
+    "proxy-config.js"
   ],
   "repository": {
     "type": "git",
@@ -23,6 +24,8 @@
   },
   "dependencies": {
     "@aws/codewhisperer-streaming-client": "^1.0.34",
-    "express": "^4.21.0"
+    "express": "^4.21.0",
+    "https-proxy-agent": "^7.0.0",
+    "undici": "^6.19.0"
   }
 }

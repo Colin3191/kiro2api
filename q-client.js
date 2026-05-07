@@ -1,6 +1,7 @@
 import { CodeWhispererStreaming, GenerateAssistantResponseCommand } from '@aws/codewhisperer-streaming-client';
 import crypto from 'crypto';
 import os from 'os';
+import { createProxyAgent } from './proxy-config.js';
 
 // region → endpoint 映射
 const REGION_ENDPOINTS = {
@@ -71,12 +72,19 @@ export function createClient(accessToken, { endpoint, region, authMethod, profil
   const finalRegion = region || arnRegion || DEFAULT_REGION;
   const finalEndpoint = endpoint || endpointForRegion(finalRegion);
 
-  const client = new CodeWhispererStreaming({
+  const clientConfig = {
     region: finalRegion,
     endpoint: finalEndpoint,
     token: { token: accessToken },
     customUserAgent: buildUserAgent(machineId),
-  });
+  };
+
+  const proxyAgent = createProxyAgent();
+  if (proxyAgent) {
+    clientConfig.requestHandler = { httpsAgent: proxyAgent };
+  }
+
+  const client = new CodeWhispererStreaming(clientConfig);
   addRequiredHeaders(client, { authMethod, provider });
   return client;
 }
