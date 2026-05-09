@@ -166,6 +166,25 @@ function extractText(content) {
 }
 
 /**
+ * 从 assistant content blocks 中提取 thinking → CodeWhisperer reasoningContent
+ * Anthropic 格式: { type: "thinking", thinking: "...", signature: "..." }
+ * CodeWhisperer 格式: { reasoningText: { text, signature? } }
+ */
+function extractReasoning(content) {
+  if (!Array.isArray(content)) return undefined;
+  const thinkingBlocks = content.filter(b => b.type === 'thinking' && typeof b.thinking === 'string' && b.thinking.length > 0);
+  if (thinkingBlocks.length === 0) return undefined;
+  const text = thinkingBlocks.map(b => b.thinking).join('');
+  const sig = thinkingBlocks.map(b => b.signature).find(s => typeof s === 'string' && s.length > 0);
+  return {
+    reasoningText: {
+      text,
+      ...(sig && { signature: sig }),
+    },
+  };
+}
+
+/**
  * 从 assistant content blocks 中提取 tool_use 调用
  */
 function extractToolUses(content) {
@@ -233,10 +252,12 @@ export function convertMessages(messages, { modelId, system, tools } = {}) {
       const images = extractImages(msg.content);
 
       if (toolResults.length > 0) {
-        // tool_result 消息：content 为空，结果放在 userInputMessageContext.toolResults
+        // tool_result 消息：text block 作为 content，tool_result 放在 userInputMessageContext
+        // 关键：Claude Code 的 ESC 中断会把 tool_result + [Request interrupted] + 新 prompt 打包成同一条 user message 的多个 content block，
+        // 如果这里把 content 写死成 ''，中断标记和新 prompt 会被静默丢弃，模型无法感知中断
         history.push({
           userInputMessage: {
-            content: '',
+            content: text,
             modelId: validModelId,
             origin: 'AI_EDITOR',
             userInputMessageContext: { toolResults },
@@ -254,10 +275,12 @@ export function convertMessages(messages, { modelId, system, tools } = {}) {
     } else if (msg.role === 'assistant') {
       const text = extractText(msg.content);
       const toolUses = extractToolUses(msg.content);
+      const reasoningContent = extractReasoning(msg.content);
       history.push({
         assistantResponseMessage: {
           content: text,
           toolUses: toolUses.length > 0 ? toolUses : undefined,
+          ...(reasoningContent && { reasoningContent }),
         },
       });
     }
@@ -265,7 +288,7 @@ export function convertMessages(messages, { modelId, system, tools } = {}) {
   }
 
   // 确保 history 以 user→assistant 交替，末尾是 user
-  // 如果末尾是 assistant（不应该发生），追加空 user
+  // 桥接后末尾仍可能是 assistant；CW 要求 currentMessage 必须是 userInputMessage
   const last = history.at(-1);
   if (last?.assistantResponseMessage) {
     history.push({
