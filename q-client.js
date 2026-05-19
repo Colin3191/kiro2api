@@ -240,7 +240,7 @@ export function convertMessages(messages, { modelId, system, tools } = {}) {
           content: sysText, modelId: validModelId, origin: 'AI_EDITOR',
         },
       });
-      history.push({ assistantResponseMessage: { content: 'OK' } });
+      history.push({ assistantResponseMessage: { content: 'I will follow these instructions.' } });
     }
   }
 
