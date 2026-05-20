@@ -300,10 +300,32 @@ export function convertMessages(messages, { modelId, system, tools } = {}) {
 
   const currentMessage = history.at(-1);
   // 将 tools 注入到 currentMessage
-  if (cwTools && currentMessage?.userInputMessage) {
+  // 当没有传 tools 但 history 中有 toolUses 时，自动生成最小 tools 定义
+  // Q Developer 要求 history 中引用的工具必须在 tools 中有定义
+  let finalTools = cwTools;
+  if (!finalTools && currentMessage?.userInputMessage) {
+    const toolNames = new Set();
+    for (const h of history) {
+      if (h.assistantResponseMessage?.toolUses) {
+        for (const tu of h.assistantResponseMessage.toolUses) {
+          if (tu.name) toolNames.add(tu.name);
+        }
+      }
+    }
+    if (toolNames.size > 0) {
+      finalTools = [...toolNames].map(name => ({
+        toolSpecification: {
+          name,
+          description: name,
+          inputSchema: { json: { type: 'object' } },
+        },
+      }));
+    }
+  }
+  if (finalTools && currentMessage?.userInputMessage) {
     currentMessage.userInputMessage.userInputMessageContext = {
       ...currentMessage.userInputMessage.userInputMessageContext,
-      tools: cwTools,
+      tools: finalTools,
     };
   }
 
