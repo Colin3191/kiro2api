@@ -255,9 +255,10 @@ export function convertMessages(messages, { modelId, system, tools } = {}) {
         // tool_result 消息：text block 作为 content，tool_result 放在 userInputMessageContext
         // 关键：Claude Code 的 ESC 中断会把 tool_result + [Request interrupted] + 新 prompt 打包成同一条 user message 的多个 content block，
         // 如果这里把 content 写死成 ''，中断标记和新 prompt 会被静默丢弃，模型无法感知中断
+        // Q Developer 不接受空 content，当只有 toolResults 时补占位文本
         history.push({
           userInputMessage: {
-            content: text,
+            content: text || '[Tool results]',
             modelId: validModelId,
             origin: 'AI_EDITOR',
             userInputMessageContext: { toolResults },
@@ -267,7 +268,7 @@ export function convertMessages(messages, { modelId, system, tools } = {}) {
       } else {
         history.push({
           userInputMessage: {
-            content: text, modelId: validModelId, origin: 'AI_EDITOR',
+            content: text || '...', modelId: validModelId, origin: 'AI_EDITOR',
             ...(images.length > 0 && { images }),
           },
         });
@@ -278,7 +279,8 @@ export function convertMessages(messages, { modelId, system, tools } = {}) {
       const reasoningContent = extractReasoning(msg.content);
       history.push({
         assistantResponseMessage: {
-          content: text,
+          // Q Developer 不接受空 content，当只有 toolUses 时补占位文本
+          content: text || (toolUses.length > 0 ? '[Calling tools]' : '...'),
           toolUses: toolUses.length > 0 ? toolUses : undefined,
           ...(reasoningContent && { reasoningContent }),
         },
@@ -389,6 +391,8 @@ export async function* chatStream(client, { messages, system, tools, profileArn,
     // 无效状态事件（错误）
     if (event.invalidStateEvent) {
       stats.invalid = `${event.invalidStateEvent.reason}: ${event.invalidStateEvent.message}`;
+      // 将 invalidStateEvent 作为错误抛出，让调用方感知
+      throw new Error(`Q Developer invalidState: ${event.invalidStateEvent.reason} - ${event.invalidStateEvent.message}`);
     }
 
     // 补充链接事件
