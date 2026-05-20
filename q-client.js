@@ -279,8 +279,7 @@ export function convertMessages(messages, { modelId, system, tools } = {}) {
       const reasoningContent = extractReasoning(msg.content);
       history.push({
         assistantResponseMessage: {
-          // Q Developer 不接受空 content，当只有 toolUses 时补占位文本
-          content: text || (toolUses.length > 0 ? '[Calling tools]' : '...'),
+          content: text,
           toolUses: toolUses.length > 0 ? toolUses : undefined,
           ...(reasoningContent && { reasoningContent }),
         },
