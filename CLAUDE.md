@@ -53,6 +53,16 @@ All endpoints are protected by a Bearer-token middleware if `PROXY_API_KEY` is s
 - `KIRO_VERSION` — User-Agent version string (default `0.11.107`)
 - `HTTPS_PROXY` / `HTTP_PROXY` — outbound proxy for Q Developer calls (applied globally via undici)
 
+## Reverse Engineering Reference
+
+This project is reverse-engineered from Kiro's built-in agent plugin located at:
+
+```
+/Applications/Kiro.app/Contents/Resources/app/extensions/kiro.kiro-agent
+```
+
+The bundled plugin (`dist/extension.js`) is the primary reference for understanding the CodeWhisperer streaming protocol, message format conversion, and tool-use event handling.
+
 ## Key Implementation Details
 
 - Token is read from `~/.aws/sso/cache/kiro-auth-token.json`, enriched with profile ARN from Kiro's profile cache
